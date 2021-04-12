@@ -4,7 +4,7 @@
 //////////////////////////////////////////
 
 #include <iostream>
-#include <string>
+#include <sstream>
 
 //////////////////////////////////////////
 //	8.1
@@ -51,31 +51,38 @@ void Bar::Set(const int& a) {
 //	8.3
 //////////////////////////////////////////
 
+enum class EDirection {
+	None, Up, Down = -1, Left = 2, Right = -2
+};
+
 class OffTheField : public std::exception {
 
 private:
-	std::pair<uint8_t, uint8_t> _robot_pos;
-	std::pair<uint8_t, uint8_t> _max_grid_size;
-	const char* _dir;
+	std::ostringstream _data;
 
 public:
 	OffTheField(const std::pair<uint8_t, uint8_t>& pos, const std::pair<uint8_t, uint8_t>& grid, const char* dir) noexcept
-	: std::exception("Off the field"), _robot_pos(pos), _max_grid_size(grid), _dir(dir) {}
+	: std::exception("Off the field") {
+	
+		_data.clear();
+		_data << "Error: " << std::exception::what() << '\n';
+		_data << "Current position: " << static_cast<int>(pos.first) << ' ' << static_cast<int>(pos.second) << '\n';
+		_data << "Direction: " << dir << '\n';
+		_data << "Grid size: " << static_cast<int>(grid.first) << ' ' << static_cast<int>(grid.second) << '\n';
+	}
 
-	void What() const;
+	const std::string What() const;
 };
 
-void OffTheField::What() const {
+const std::string OffTheField::What() const {
 
-	std::cerr << "Error: " << std::exception::what() << '\n';
-	std::cerr << "Current position: " << static_cast<int>(_robot_pos.first) << ' ' << static_cast<int>(_robot_pos.second) << '\n';
-	std::cerr << "Direction: " << _dir << '\n';
-	std::cerr << "Grid size: " << static_cast<int>(_max_grid_size.first) << ' ' << static_cast<int>(_max_grid_size.second) << '\n';
+	return _data.str();
 }
 
-class IllegalCommnd : public std::exception {
+class IllegalCommand : public std::exception {
 
-	// Why do we need this?
+public:
+	IllegalCommand(const char* reason) : std::exception(reason) {}
 };
 
 class Robot {
@@ -89,13 +96,15 @@ private:
 	std::pair<uint8_t, uint8_t> GetCurrentPos() const;
 	std::pair<uint8_t, uint8_t> GetGridSize() const;
 
-public:
-	Robot(const uint8_t& x, const uint8_t& y) : _posX(x), _posY(y) {}
-
 	void MoveUp();
 	void MoveDown();
 	void MoveLeft();
 	void MoveRight();
+
+public:
+	Robot(const uint8_t& x, const uint8_t& y) : _posX(x), _posY(y) {}
+
+	void Move(const EDirection& dir);
 };
 
 std::pair<uint8_t, uint8_t> Robot::GetCurrentPos() const {
@@ -108,33 +117,42 @@ std::pair<uint8_t, uint8_t> Robot::GetGridSize() const {
 	return { _max_gridX, _max_gridY };
 }
 
+void Robot::Move(const EDirection& dir) {
+
+	switch (dir) {
+	case EDirection::Up:	MoveUp();		break;
+	case EDirection::Down:	MoveDown();		break;
+	case EDirection::Left:	MoveLeft();		break;
+	case EDirection::Right: MoveRight();	break;
+	default: throw IllegalCommand("No direction");
+	}
+}
+
 void Robot::MoveUp() {
 
 	if (_posY + 1 > _max_gridY) throw OffTheField(GetCurrentPos(), GetGridSize(), "up");
-
 	++_posY;
 }
 
 void Robot::MoveDown() {
 
 	if (_posY - 1 == UINT8_MAX) throw OffTheField(GetCurrentPos(), GetGridSize(), "down");
-
 	--_posY;
 }
 
 void Robot::MoveLeft() {
 
 	if (_posX - 1 == UINT8_MAX) throw OffTheField(GetCurrentPos(), GetGridSize(), "left");
-
 	--_posX;
 }
 
 void Robot::MoveRight() {
 
 	if (_posX + 1 > _max_gridX) throw OffTheField(GetCurrentPos(), GetGridSize(), "right");
-
 	++_posX;
 }
+
+
 
 int main() {
 
@@ -176,16 +194,20 @@ int main() {
 
 	Robot rob(8, 8);
 	try {
-		rob.MoveLeft();
-		rob.MoveRight();
-		rob.MoveDown();
-		rob.MoveDown();
-		rob.MoveRight();
-		rob.MoveRight();
-		rob.MoveRight();
+		rob.Move(EDirection::Up);
+		rob.Move(EDirection::Left);
+		rob.Move(EDirection::Up);
+		rob.Move(EDirection::Up);
+		rob.Move(EDirection::None);
 	}
 	catch (const OffTheField& ex) {
-		ex.What();
+		std::cerr << ex.What();
+	}
+	catch (const IllegalCommand& ex) {
+		std::cerr << ex.what();
+	}
+	catch (const std::exception& ex) {
+		std::cerr << ex.what();
 	}
 
 	return 0;
