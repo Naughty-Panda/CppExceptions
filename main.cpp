@@ -95,6 +95,7 @@ private:
 
 	std::pair<uint8_t, uint8_t> GetCurrentPos() const;
 	std::pair<uint8_t, uint8_t> GetGridSize() const;
+	void Report() const;
 
 	void MoveUp();
 	void MoveDown();
@@ -102,7 +103,7 @@ private:
 	void MoveRight();
 
 public:
-	Robot(const uint8_t& x, const uint8_t& y) : _posX(x), _posY(y) {}
+	Robot(const uint8_t& x, const uint8_t& y) : _posX(x), _posY(y) { Report(); }
 
 	void Move(const EDirection& dir);
 };
@@ -115,6 +116,13 @@ std::pair<uint8_t, uint8_t> Robot::GetCurrentPos() const {
 std::pair<uint8_t, uint8_t> Robot::GetGridSize() const {
 
 	return { _max_gridX, _max_gridY };
+}
+
+void Robot::Report() const {
+
+	std::cout << "Robot created at";
+	std::cout << " x:" << static_cast<int>(GetCurrentPos().first);
+	std::cout << " y:" << static_cast<int>(GetCurrentPos().second) << '\n';
 }
 
 void Robot::Move(const EDirection& dir) {
@@ -166,8 +174,8 @@ int main() {
 		std::cout << div<double>(-5.6, 1.0) << '\n';
 		std::cout << div<uint16_t>(3, 3) << '\n';
 	}
-	catch (const std::exception& excep) {
-		std::cerr << "Error in function: " << excep.what() << '\n';
+	catch (const std::exception& ex) {
+		std::cerr << "Error in function: " << ex.what() << '\n';
 	}
 
 	//////////////////////////////////////////
@@ -181,11 +189,21 @@ int main() {
 		while (input != 0) {
 
 			std::cin >> input;
-			bar.Set(input);
+
+			if (!std::cin) {
+
+				std::cin.clear();
+				std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+				input = 1;
+				std::cerr << "Input error!\n";
+			}
+			else {
+				bar.Set(input);
+			}
 		}
 	}
 	catch (const Ex& ex) {
-		std::cerr << "Error. " << ex.What();
+		std::cerr << "Error. " << ex.What() << '\n';
 	}
 
 	//////////////////////////////////////////
